@@ -9,10 +9,10 @@ yarn start       # Dev server with hot reload (localhost:3000)
 yarn build       # Generate static site to build/
 yarn serve       # Serve the built site locally
 yarn clear       # Clear Docusaurus cache
-yarn deploy      # Deploy to GitHub Pages (gh-pages branch)
+yarn deploy      # Manual deploy to gh-pages (requires USE_SSH=true or GIT_USER=<username>)
 ```
 
-Dependencies are managed with yarn (`yarn` to install).
+Dependencies are managed with yarn (`yarn` to install). No lint or test scripts are configured — `package.json` only exposes Docusaurus CLI passthroughs.
 
 ## Architecture
 
@@ -20,7 +20,9 @@ This is a **Docusaurus 3.9.2** static documentation site for algorithm/data stru
 
 **Stack:** Docusaurus + React 19 + MDX, Node 20+ required.
 
-**CI/CD:** `.github/workflows/deploy.yml` auto-builds and deploys on push to `main` using GitHub Actions.
+**CI/CD:** `.github/workflows/deploy.yml` auto-builds and deploys on push to `main` using GitHub Actions — manual `yarn deploy` is rarely needed.
+
+**URL paths:** Production site is served under `baseUrl: '/interview-cheat-sheet/'` (see `docusaurus.config.js`). Use Docusaurus-aware link helpers or relative paths; hardcoded absolute paths like `/img/foo.png` will break in production.
 
 ## Content
 
