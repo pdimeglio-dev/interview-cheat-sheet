@@ -1,6 +1,6 @@
 ---
 title: Linked Lists
-description: Core mental model for linked lists, the pointer-rewiring pattern, and walkthroughs of Reverse Linked List and Merge Two Sorted Lists in JavaScript.
+description: Core mental model for linked lists, the pointer-rewiring pattern, and walkthroughs of Reverse Linked List, Merge Two Sorted Lists, and Remove Linked List Elements in JavaScript.
 ---
 
 # Linked Lists
@@ -372,3 +372,93 @@ current.next = p1 !== null ? p1 : p2;
 ```
 
 > 🧠 **Why it works:** The remaining nodes are already sorted and already linked — no need to iterate through them.
+
+---
+
+# Remove Linked List Elements (LeetCode 203)
+
+:::note[Problem]
+Given the `head` of a linked list and an integer `val`, remove all nodes whose value equals `val` and return the new head.
+
+- **Input:** `head = [1, 2, 6, 3, 4, 5, 6]`, `val = 6`
+- **Output:** `[1, 2, 3, 4, 5]`
+:::
+
+**Related Links:**
+- [LeetCode 203: Remove Linked List Elements](https://leetcode.com/problems/remove-linked-list-elements/)
+- [NeetCode: Remove Linked List Elements](https://neetcode.io/problems/remove-linked-list-elements)
+
+---
+
+## How to Think About It
+
+Two things make this problem tricky:
+
+1. **The head itself might need to be removed** — and possibly several heads in a row (e.g. `[7, 7, 7, 1]`, `val = 7`).
+2. **Consecutive matches** — after you splice out a node, the *new* `cur.next` might also match and needs to be re-inspected.
+
+Both problems dissolve with the **Dummy Node** pattern: place a sentinel node before `head` so that removing the first real node works exactly like removing any other node.
+
+### The Key Insight: Don't Advance After a Deletion
+
+When you find a match, you rewire `cur.next = cur.next.next` to bypass it. **Do not move `cur` forward afterwards.** The new `cur.next` is a brand-new candidate that hasn't been checked yet — advancing would skip it.
+
+This flips the loop shape compared to most traversals:
+
+- Loop condition is `cur.next !== null` (we inspect the node *ahead* of us)
+- On a match: rewire, **stay put**
+- On a miss: advance `cur`
+
+---
+
+## Implementation
+
+```javascript
+class Solution {
+    /**
+     * @param {ListNode} head
+     * @param {number} val
+     * @return {ListNode}
+     */
+    removeElements(head, val) {
+        const dummy = new ListNode(0);
+        dummy.next = head;
+
+        let cur = dummy;
+
+        while (cur.next !== null) {
+            if (cur.next.val === val) {
+                // Bypass the match — don't advance, the new cur.next needs checking
+                cur.next = cur.next.next;
+            } else {
+                cur = cur.next;
+            }
+        }
+
+        return dummy.next;
+    }
+}
+```
+
+:::tip Complexity
+- **Time Complexity:** $O(n)$ — Each node is inspected at most once.
+- **Space Complexity:** $O(1)$ — Only the dummy and a single pointer.
+:::
+
+---
+
+## Why the Edge Cases Just Work
+
+| Case | Why the code handles it |
+|------|-------------------------|
+| **Consecutive matches** `[7, 7, 7]`, `val = 7` | `cur` stays at dummy; `dummy.next` is rewired three times, finally landing on `null`. |
+| **Head must be removed** | `cur` starts *before* `head`, so removing the first real node is just another `cur.next = cur.next.next`. |
+| **Empty list** (`head = null`) | `cur.next` is `null` immediately; the loop never runs and `dummy.next` (i.e. `null`) is returned. |
+
+:::danger[Gotcha — Advancing Past a Fresh Candidate]
+A common mistake is treating this like a normal traversal and always doing `cur = cur.next` at the bottom of the loop. That skips the node that just became `cur.next` after a deletion, and consecutive matches leak through.
+:::
+
+:::info Key Takeaway
+**Look ahead, not at.** When you're filtering a list, stand on the node *before* the candidate. That way one pointer rewires (`cur.next = cur.next.next`) does the removal, and a dummy node makes the head just another regular position.
+:::
