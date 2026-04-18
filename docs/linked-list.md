@@ -1,6 +1,6 @@
 ---
 title: Linked Lists
-description: Core mental model for linked lists, the pointer-rewiring pattern, and walkthroughs of Reverse Linked List, Merge Two Sorted Lists, Remove Linked List Elements, and Remove Nth Node From End in JavaScript.
+description: Core mental model for linked lists, the pointer-rewiring pattern, and walkthroughs of Reverse Linked List, Merge Two Sorted Lists, Remove Linked List Elements, Remove Nth Node From End, and Middle of the Linked List in JavaScript.
 ---
 
 # Linked Lists
@@ -591,3 +591,114 @@ You can't go backwards in a singly linked list, so "the node `n` from the end" f
 
 Whenever a problem says *"the n-th from the end"* or *"the middle"* (a gap that's half the length), reach for this pattern.
 :::
+
+---
+
+# Middle of the Linked List (LeetCode 876)
+
+:::note[Problem]
+Given the `head` of a singly linked list, return the middle node. If the list has an even number of nodes, return the **second** of the two middle nodes.
+
+- **Input:** `head = [1, 2, 3, 4, 5]` → **Output:** `[3, 4, 5]` (middle node is `3`)
+- **Input:** `head = [1, 2, 3, 4, 5, 6]` → **Output:** `[4, 5, 6]` (second middle is `4`)
+:::
+
+**Related Links:**
+- [LeetCode 876: Middle of the Linked List](https://leetcode.com/problems/middle-of-the-linked-list/)
+- [NeetCode: Find the Middle of a Linked List](https://neetcode.io/problems/find-the-middle-of-a-linked-list)
+
+---
+
+## How to Think About It
+
+The previous problem used two pointers with a **fixed gap** (`n` apart, moving together). This one uses two pointers with a **growing gap** — they start at the same node but move at different speeds. That's the **fast/slow pointer** pattern, often called **tortoise and hare**.
+
+### The Core Trick
+
+- `slow` advances **one** node per step.
+- `fast` advances **two** nodes per step.
+- When `fast` reaches the end, `slow` has covered half the distance — it's sitting on the middle.
+
+```
+── Odd length: [1, 2, 3, 4, 5] ──
+
+Step 0:  slow=1, fast=1
+Step 1:  slow=2, fast=3
+Step 2:  slow=3, fast=5      (fast.next === null → stop)
+Return slow → [3, 4, 5]  ✅
+
+── Even length: [1, 2, 3, 4, 5, 6] ──
+
+Step 0:  slow=1, fast=1
+Step 1:  slow=2, fast=3
+Step 2:  slow=3, fast=5
+Step 3:  slow=4, fast=null    (fast === null → stop)
+Return slow → [4, 5, 6]  ✅  (second of the two middles, as required)
+```
+
+### Why the Loop Condition Has Two Checks
+
+```javascript
+while (fast !== null && fast.next !== null)
+```
+
+Both checks are needed because `fast` advances by **two** each iteration:
+
+- `fast !== null` — so `fast.next` doesn't throw on an even-length list (where `fast` lands on `null`).
+- `fast.next !== null` — so `fast.next.next` doesn't throw on an odd-length list (where `fast` lands on the last node).
+
+Skipping either check causes a null-deref on the opposite parity of list length.
+
+---
+
+## Implementation
+
+```javascript
+class Solution {
+    /**
+     * @param {ListNode} head
+     * @return {ListNode}
+     */
+    middleNode(head) {
+        let slow = head;
+        let fast = head;
+
+        while (fast !== null && fast.next !== null) {
+            fast = fast.next.next;
+            slow = slow.next;
+        }
+
+        return slow;
+    }
+}
+```
+
+:::tip Complexity
+- **Time Complexity:** $O(n)$ — `fast` traverses the list once (at double speed, so `n/2` iterations).
+- **Space Complexity:** $O(1)$ — Two pointers.
+:::
+
+---
+
+## The Early-Return Guard Isn't Needed
+
+A first attempt often starts with:
+
+```javascript
+if (head.next === null) return head;   // single-node early return
+```
+
+This is **redundant**. For a single-node list, `head.next` is already `null`, so the loop condition `fast !== null && fast.next !== null` is false on the first check — the loop never runs and `slow` (which is `head`) is returned correctly.
+
+> 🧠 **Pattern:** If you catch yourself writing a special case that the main loop would already handle correctly, delete it. Same reasoning as using a dummy node to avoid a special case for the head — the less branching, the fewer places for bugs to hide.
+
+:::info Key Takeaway
+**Fast/slow (tortoise and hare) is the `Math.floor(length / 2)` of linked lists.** When you can't index into the list, doubling one pointer's speed lets you reach "halfway" in a single pass. This is the same tooling used for **cycle detection** (Floyd's algorithm) — if `fast` ever catches `slow` again, there's a cycle; if `fast` reaches `null`, there isn't.
+:::
+
+### Compare: Fixed-Gap vs. Growing-Gap
+
+| Pattern | Movement | Use when |
+|---------|----------|----------|
+| **Fixed gap** (LC 19) | Both pointers advance 1 step, but lead starts `n` ahead | You need a node at a specific offset from the end |
+| **Growing gap** (LC 876, cycle detection) | `fast` goes 2, `slow` goes 1 | You need the midpoint, or to detect a cycle |
