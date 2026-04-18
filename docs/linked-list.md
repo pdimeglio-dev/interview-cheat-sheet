@@ -1,6 +1,6 @@
 ---
 title: Linked Lists
-description: Core mental model for linked lists, the pointer-rewiring pattern, and walkthroughs of Reverse Linked List, Merge Two Sorted Lists, and Remove Linked List Elements in JavaScript.
+description: Core mental model for linked lists, the pointer-rewiring pattern, and walkthroughs of Reverse Linked List, Merge Two Sorted Lists, Remove Linked List Elements, and Remove Nth Node From End in JavaScript.
 ---
 
 # Linked Lists
@@ -461,4 +461,133 @@ A common mistake is treating this like a normal traversal and always doing `cur 
 
 :::info Key Takeaway
 **Look ahead, not at.** When you're filtering a list, stand on the node *before* the candidate. That way one pointer rewires (`cur.next = cur.next.next`) does the removal, and a dummy node makes the head just another regular position.
+:::
+
+---
+
+# Remove Nth Node From End of List (LeetCode 19)
+
+:::note[Problem]
+Given the `head` of a linked list, remove the `n`-th node from the end of the list and return its head.
+
+- **Input:** `head = [1, 2, 3, 4, 5]`, `n = 2`
+- **Output:** `[1, 2, 3, 5]`
+:::
+
+**Related Links:**
+- [LeetCode 19: Remove Nth Node From End of List](https://leetcode.com/problems/remove-nth-node-from-end-of-list/)
+- [NeetCode: Remove Node From End of Linked List](https://neetcode.io/problems/remove-node-from-end-of-linked-list)
+
+---
+
+## How to Think About It
+
+The naive approach needs two passes: count the nodes, then walk `length - n` steps to find the one to delete. You can do it in **one pass** with the **two-pointer gap** trick.
+
+### The Two-Pointer Gap Trick
+
+Keep two pointers exactly `n` nodes apart. When the front pointer walks off the end (hits `null`), the back pointer is sitting right before the node that's `n` from the end — which is exactly where you need to splice.
+
+```
+n = 2
+list:        1 → 2 → 3 → 4 → 5 → null
+dummy → [0] → 1 → 2 → 3 → 4 → 5 → null
+         ↑
+     preDelete, cur
+
+── Step 1: advance cur by n (=2) ──
+
+dummy → [0] → 1 → 2 → 3 → 4 → 5 → null
+         ↑         ↑
+     preDelete    cur         (gap of n nodes)
+
+── Step 2: advance both until cur == null ──
+
+dummy → [0] → 1 → 2 → 3 → 4 → 5 → null
+                   ↑              ↑
+               preDelete         cur=null
+
+── Step 3: splice out preDelete.next ──
+
+dummy → [0] → 1 → 2 → 3 → 5 → null
+                   ↑
+               preDelete
+
+Return dummy.next → 1 → 2 → 3 → 5  ✅
+```
+
+### Why the Dummy Node Is Essential Here
+
+If `n` equals the list length (i.e. remove the head), the front pointer becomes `null` *immediately* after the first phase. Without a dummy, the back pointer would be at `head` and there'd be no node "before" it to splice from. With a dummy, `preDelete` stays on the dummy, and `dummy.next = dummy.next.next` correctly removes the original head.
+
+---
+
+## Implementation
+
+```javascript
+class Solution {
+    /**
+     * @param {ListNode} head
+     * @param {number} n
+     * @return {ListNode}
+     */
+    removeNthFromEnd(head, n) {
+        const dummy = new ListNode(0);
+        dummy.next = head;
+
+        let cur = head;
+        let preDelete = dummy;
+
+        // Phase 1: open a gap of n nodes between cur and preDelete
+        let forward = 0;
+        while (cur !== null && forward < n) {
+            cur = cur.next;
+            forward++;
+        }
+
+        // Phase 2: walk both until cur falls off the end
+        while (cur !== null) {
+            cur = cur.next;
+            preDelete = preDelete.next;
+        }
+
+        // preDelete is now right before the node to remove
+        preDelete.next = preDelete.next.next;
+
+        return dummy.next;
+    }
+}
+```
+
+:::tip Complexity
+- **Time Complexity:** $O(L)$ — One pass; each pointer traverses the list at most once.
+- **Space Complexity:** $O(1)$ — Two pointers and a dummy.
+:::
+
+### Why `while` with a Counter Instead of a `for` Loop?
+
+A bare `for (let i = 0; i < n; i++) cur = cur.next;` would work **given the LeetCode constraint** that `1 <= n <= length`. But it has no safety net: if `n > length`, you eventually do `null.next` and crash.
+
+The `while (cur !== null && forward < n)` version is defensive — it stops the instant `cur` runs off the end, even if `n` is larger than the list. In an interview setting, this is a nice thing to point out: *"I'm guarding against `n > length` so the code doesn't null-deref on unexpected input."*
+
+Both are $O(n)$; the only difference is robustness.
+
+---
+
+## Why the Edge Cases Just Work
+
+| Case | Why the code handles it |
+|------|-------------------------|
+| **Remove the head** (`n == length`) | After phase 1, `cur` is `null`; phase 2 never runs; `preDelete` is still the dummy, so `dummy.next = dummy.next.next` removes the head. |
+| **Single-node list** `[1]`, `n = 1` | Same as "remove head" — dummy stays in place, `dummy.next` becomes `null`. |
+| **Remove the tail** | Phase 2 walks `preDelete` to the second-to-last node; `preDelete.next = null` drops the tail. |
+
+:::danger[Gotcha — Forgetting the Dummy]
+Without a dummy, `n == length` has no "node before the head" to splice from. You'd end up writing a special-case branch for "is the head the one we're removing?" — exactly the kind of duplication the dummy exists to eliminate.
+:::
+
+:::info Key Takeaway
+You can't go backwards in a singly linked list, so "the node `n` from the end" feels like it needs two passes — one to measure the length, one to walk to it. The **fixed-gap two-pointer** trick gives you the answer in a single pass: hold two pointers exactly `n` apart, then move them together until the lead hits `null`. Because the gap never changes, when the lead runs out the trailing pointer has landed exactly `n` from the end.
+
+Whenever a problem says *"the n-th from the end"* or *"the middle"* (a gap that's half the length), reach for this pattern.
 :::
